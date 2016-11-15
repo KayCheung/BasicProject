@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd 
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd 
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd">
+
+	<!-- 引入属性文件 -->
+	<context:component-scan base-package="com.housair.bssm.dao" />
+
+	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		init-method="init" destroy-method="close">
+		<property name="url" value="${bssm.ds.mysql.url}" />
+		<property name="username" value="${bssm.ds.mysql.username}" />
+		<property name="password" value="${bssm.ds.mysql.password}" />
+
+		<property name="filters" value="${bssm.ds.filters}" />
+
+		<property name="initialSize" value="${bssm.ds.initialSize}" />
+		<property name="minIdle" value="${bssm.ds.minIdle}" />
+		<property name="maxActive" value="${bssm.ds.maxActive}" />
+		<property name="maxWait" value="${bssm.ds.maxWait}" />
+
+		<property name="testOnBorrow" value="${bssm.ds.testOnBorrow}" />
+		<property name="testWhileIdle" value="${bssm.ds.testWhileIdle}" />
+		<property name="timeBetweenEvictionRunsMillis" value="${bssm.ds.timeBetweenEvictionRunsMillis}" />
+		<property name="numTestsPerEvictionRun" value="${bssm.ds.numTestsPerEvictionRun}" />
+		<property name="minEvictableIdleTimeMillis" value="${bssm.ds.minEvictableIdleTimeMillis}" />
+		<property name="validationQuery" value="${bssm.ds.validationQuery}" />
+
+		<property name="removeAbandoned" value="${bssm.ds.removeAbandoned}" />
+		<property name="removeAbandonedTimeout" value="${bssm.ds.removeAbandonedTimeout}" />
+		<property name="logAbandoned" value="${bssm.ds.logAbandoned}" />
+
+		<property name="poolPreparedStatements" value="${bssm.ds.poolPreparedStatements}" />
+		<property name="maxPoolPreparedStatementPerConnectionSize"
+			value="${bssm.ds.maxPoolPreparedStatementPerConnectionSize}" />
+	</bean>
+
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="mapperLocations" value="classpath:config/mappers/**/*.xml" />
+	</bean>
+
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate"> 
+		<constructor-arg index="0">
+			<ref bean="sqlSessionFactory" />
+		</constructor-arg> 
+	</bean>
+
+	<!--动态代理实现 不用写dao的实现 -->
+	<bean id="mapperScannerConfigurer" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<!-- 这里的basePackage 指定了dao层接口路劲，这里的dao接口不用自己实现 -->
+		<property name="basePackage" value="com.housair.bssm.dao" />
+		<!-- 如果只有一个数据源的话可以不用指定，但是如果有多个数据源的话必须要指定 -->
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+		<!--直接指定了sqlsessionTemplate名称，这个和上面的其实是一样的 -->
+		<!-- <property name="sqlSessionTemplateBeanName" value="sqlSession" /> -->
+	</bean>
+
+</beans>

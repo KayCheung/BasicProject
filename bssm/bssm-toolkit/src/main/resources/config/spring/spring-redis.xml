@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd 
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd">
+	
+	<aop:aspectj-autoproxy />
+	<context:annotation-config />
+	<context:component-scan base-package="com.housair.bssm.toolkit.redis" />
+
+	<!-- 连接池的配置 -->
+	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+		<property name="minIdle" value="${bssm.redis.pool.minIdle}" />
+		<property name="maxIdle" value="${bssm.redis.pool.maxIdle}" />
+		<property name="maxTotal" value="${bssm.redis.pool.maxActive}" />
+		<property name="maxWaitMillis" value="${bssm.redis.pool.maxWait}" />
+		<property name="testOnBorrow" value="${bssm.redis.pool.testOnBorrow}" />
+		<property name="testOnReturn" value="${bssm.redis.pool.testOnReturn}" />
+		<property name="testWhileIdle" value="${bssm.redis.pool.testWhileIdle}" />
+	</bean>
+	
+	<!-- redis单机连接池配置 -->
+	<bean id="jedisPool" class="redis.clients.jedis.JedisPool" scope="singleton">
+		<constructor-arg name="poolConfig" ref="jedisPoolConfig" />
+		<constructor-arg name="host" value="${bssm.redis.host}" />
+		<constructor-arg name="port" value="${bssm.redis.port}" />
+		<constructor-arg name="timeout" value="${bssm.redis.timeout}" />
+	</bean>
+
+	<!-- 分片连接池配置 -->
+	<!-- 
+	<bean id="shardedJedisPool" class="redis.clients.jedis.ShardedJedisPool" scope="singleton">
+		<constructor-arg name="poolConfig" ref="jedisPoolConfig" />
+		<constructor-arg name="shards">
+			<list>
+				<bean class="redis.clients.jedis.JedisShardInfo">
+					<constructor-arg name="host" value="${bssm.redis.host}" />
+					<constructor-arg name="port" value="${bssm.redis.port}" />
+					<constructor-arg name="timeout" value="${bssm.redis.timeout}" />
+				</bean>
+				<bean class="redis.clients.jedis.JedisShardInfo">
+					<constructor-arg name="host" value="${bssm.redis2.host}" />
+					<constructor-arg name="port" value="${bssm.redis2.port}" />
+					<constructor-arg name="timeout" value="${bssm.redis2.timeout}" />
+				</bean>
+			</list>
+		</constructor-arg>
+	</bean>
+	 -->
+
+	<!-- 哨兵连接池配置 -->
+	<!-- 
+	<bean id="jedisSentinelPool" class="redis.clients.jedis.JedisSentinelPool" scope="singleton">
+		<constructor-arg name="masterName" value="mymaster" />
+		<constructor-arg name="sentinels">
+			<set>
+				<value>${bssm.redis.sentinel1}</value>
+				<value>${bssm.redis.sentinel2}</value>
+			</set>
+		</constructor-arg>
+		<constructor-arg name="poolConfig" ref="jedisPoolConfig" />
+	</bean>
+	 -->
+	
+	<bean id="redisClient" class="com.housair.bssm.toolkit.redis.RedisClientImpl" scope="singleton">
+		<constructor-arg name="redisPool" ref="jedisPool" />
+	</bean>
+
+</beans>
