@@ -10,24 +10,26 @@
     <bean id="redisCacheManager" class="com.housair.bssm.shiro.cache.RedisCacheManager">
 		<property name="redisClient" ref="redisClient" />
 	</bean>
-
-    <bean id="credentialsMatcher" class="com.housair.bssm.shiro.matcher.CustomPasswordMatcher">
-		<constructor-arg name="redisClient" ref="redisClient" />
-		<property name="passwordService" ref="passwordService" />
-	</bean>
-	
-	<bean id="passwordService" class="com.housair.bssm.shiro.service.CustomPasswordService" />
     
     <!-- 自定义shiro的realm数据库身份验证 -->
-    <bean id="dbAuthorizingRealm" class="com.housair.bssm.shiro.realm.DBAuthorizingRealm">
-        <property name="name" value="dbAuthorizing"/>
-        <property name="credentialsMatcher" ref="credentialsMatcher" />
+    <bean id="casAuthorizingRealm" class="com.housair.bssm.shiro.realm.CASAuthorizingRealm">
+        <property name="name" value="casAuthorizing"/>
         <!-- <property name="defaultPermissionString" value="security:change-password,security:index"/> -->
+        <property name="cachingEnabled" value="true" />
         <property name="authorizationCacheName" value="shiroAuthorizationCache"/>
         <property name="authenticationCachingEnabled" value="true"/>
         <property name="authorizationCachingEnabled" value="true"/>
         <property name="cacheManager" ref="redisCacheManager" />
         <property name="authenticationCacheName" value="shiroAuthenticationCache"/>
+        
+        <property name="rememberMeAttributeName" value="isRememberMe"/>
+        
+        <property name="defaultRoles" value="admin,user"/>
+	    <property name="defaultPermissions" value="user:create,user:update"/>
+	    <property name="roleAttributeNames" value="roles"/>
+	    <property name="permissionAttributeNames" value="permissions"/>
+	    <property name="casServerUrlPrefix" value="${cas.host}"/>
+	    <property name="casService" value="${cas.client.bssm}/shiro-cas"/>
     </bean>
     
     <bean id="sessionDAO" class="com.housair.bssm.shiro.dao.RedisSessionDAO">
@@ -45,27 +47,45 @@
         <property name="sessionDAO" ref="sessionDAO"/>
     </bean>
     
+    <!-- 实现CAS remember me功能 -->
+    <bean id="casSubjectFactory" class="org.apache.shiro.cas.CasSubjectFactory" />
+    
     <!-- 使用默认的WebSecurityManager -->
     <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
         <!-- realm认证和授权,从数据库读取资源 -->
-        <property name="realm" ref="dbAuthorizingRealm"/>
+        <property name="realm" ref="casAuthorizingRealm"/>
         <!-- 考虑到集群，使用DefaultWebSessionManager来做sessionManager -->
         <property name="sessionManager" ref="sessionManager"/>
-        <property name="cacheManager" ref="redisCacheManager" /> 
+        <property name="cacheManager" ref="redisCacheManager" />
+        <property name="subjectFactory" ref="casSubjectFactory" />
     </bean>
     
     <!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->    
 	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
     
+    <bean id="casFilter" class="com.housair.bssm.shiro.filter.CustomCasFilter">
+		<property name="failureUrl" value="/casFailure.html" />
+	</bean>
+	
+	<bean id="logoutFilter" class="org.apache.shiro.web.filter.authc.LogoutFilter">
+		<property name="redirectUrl" value="${cas.client.bssm.logout}" />
+	</bean>
+    
     <bean id="shiroSecurityFilter" class="com.housair.bssm.shiro.filter.CustomShiroFilterFactoryBean">
         <!-- shiro的核心安全接口 -->
         <property name="securityManager" ref="securityManager"/>
         <!-- 登录页面地址 -->
-        <property name="loginUrl" value="/loginPage.html"/>
+        <property name="loginUrl" value="${cas.login}?service=${cas.client.bssm}/shiro-cas"/>
         <!-- 登录成功页面地址 -->
         <property name="successUrl" value="/index.html"/>
         <!-- 认证未通过访问的页面（未经授权页面） -->
         <property name="unauthorizedUrl" value="/error/403.html"/>
+        <property name="filters">
+        	<map>
+        		<entry key="cas" value-ref="casFilter"/>
+        		<entry key="logout" value-ref="logoutFilter"/>
+        	</map>
+        </property>
 		<property name="filterChainDefinitions">
 			<!-- anon (无参,表示可匿名使用,可以理解为匿名用户或游客); authc (无参,表示需认证才能使用); authcBasic (无参,表示httpBasic认证); user(无参,表示必须存在用户,当登入操作时不做检查) 是第一组认证过滤器 -->
     		<!-- perms(参数可写多个,多参时必须加上引号,且参数之间用逗号分割,如/admins/user/**=perms["user:add:*,user:modify:*"]; 当有多个参数时必须每个参数都通过才算通过,相当于isPermitedAll()方法); 
@@ -74,7 +94,9 @@
 			<value>
                 /resources/**=anon
                 /error/**=anon
+                /shiro-cas* = cas
                 /login**=anon
+                /logout**=user,logout
                 /**=user
 			</value>
 		</property>

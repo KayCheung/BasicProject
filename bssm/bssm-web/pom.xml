@@ -72,7 +72,7 @@
 			<artifactId>spring-test</artifactId>
 		</dependency>
 
-		<!-- Spring Boot -->
+		<!-- Spring Boot
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -89,7 +89,7 @@
 			<groupId>org.apache.tomcat.embed</groupId>
 			<artifactId>tomcat-embed-jasper</artifactId>
 			<scope>provided</scope>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>jstl</artifactId>
@@ -102,6 +102,11 @@
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
 		</dependency>
+		<!-- Freemarker -->
+			<dependency>
+			    <groupId>org.freemarker</groupId>
+			    <artifactId>freemarker</artifactId>
+			</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
@@ -110,6 +115,7 @@
 		</dependency>
 	</dependencies>
 	<build>
+		<finalName>bssm</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -119,6 +125,7 @@
 					<warName>${project.build.name}-${project.version}-${timestamp}</warName>
 				</configuration>
 			</plugin>
+			
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-antrun-plugin</artifactId>

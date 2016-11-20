@@ -79,6 +79,9 @@ public class RedisSessionDAO extends AbstractSessionDAO {
             logger.error("session or session id is null");
             return;
         }
+        if(logger.isInfoEnabled()) {
+        	logger.info("save session [{}]", session.getId());
+        }
         session.setTimeout(maxIdleTimeInMillis);
         String key = session.getId().toString();
         byte[] val = SerializationUtils.serialize(session);
@@ -87,6 +90,9 @@ public class RedisSessionDAO extends AbstractSessionDAO {
 	
 	@Override
 	public void update(Session session) throws UnknownSessionException {
+		if(logger.isInfoEnabled()) {
+        	logger.info("update session [{}]", session.getId());
+        }
 		saveSession(session);
 	}
 
@@ -96,6 +102,9 @@ public class RedisSessionDAO extends AbstractSessionDAO {
             logger.error("session or session id is null");  
             return;  
         }  
+		if(logger.isInfoEnabled()) {
+        	logger.info("delete session [{}]", session.getId());
+        }
 		redisClient.hdel(shiroSessionKey, namespace, session.getId().toString());
 	}
 
@@ -117,6 +126,9 @@ public class RedisSessionDAO extends AbstractSessionDAO {
 	@Override
 	protected Serializable doCreate(Session session) {
 		Serializable sessionId = this.generateSessionId(session);
+		if(logger.isInfoEnabled()) {
+        	logger.info("do create session [{}]", sessionId);
+        }
         this.assignSessionId(session, sessionId);
         this.saveSession(session);
         return sessionId;
@@ -127,6 +139,9 @@ public class RedisSessionDAO extends AbstractSessionDAO {
 		if(sessionId == null){
             logger.error("session id is null");
             return null;
+        }
+		if(logger.isInfoEnabled()) {
+        	logger.info("do read session [{}]", sessionId);
         }
         String key = sessionId.toString();
         Session session = (Session) SerializationUtils.deserialize(redisClient.hget(shiroSessionKey, namespace, key, new TypeReference<byte[]>() {

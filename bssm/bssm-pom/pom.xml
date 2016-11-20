@@ -20,6 +20,7 @@
 		<logback.version>1.1.7</logback.version>
 		<slf4j.version>1.7.21</slf4j.version>
 		<shiro.version>1.2.6</shiro.version>
+		<spring.security.version>4.0.0.RELEASE</spring.security.version>
 	</properties>
 
 	<profiles>
@@ -126,6 +127,27 @@
 			</dependency>
 
 			<dependency>
+				<groupId>org.springframework.security</groupId>
+				<artifactId>spring-security-core</artifactId>
+				<version>${spring.security.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.security</groupId>
+				<artifactId>spring-security-web</artifactId>
+				<version>${spring.security.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.security</groupId>
+				<artifactId>spring-security-config</artifactId>
+				<version>${spring.security.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.security</groupId>
+				<artifactId>spring-security-cas</artifactId>
+				<version>${spring.security.version}</version>
+			</dependency>
+			
+			<dependency>
 				<groupId>org.apache.tomcat.embed</groupId>
 				<artifactId>tomcat-embed-jasper</artifactId>
 				<version>8.5.5</version>
@@ -176,6 +198,11 @@
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
 				<version>${slf4j.version}</version>
+			</dependency>
+			<dependency>
+			    <groupId>org.slf4j</groupId>
+			    <artifactId>jcl-over-slf4j</artifactId>
+			    <version>1.7.21</version>
 			</dependency>
 
 			<!-- utils -->
@@ -265,6 +292,25 @@
 			    <groupId>org.apache.shiro</groupId>
 			    <artifactId>shiro-aspectj</artifactId>
 			    <version>${shiro.version}</version>
+			</dependency>
+			<dependency>
+			    <groupId>org.apache.shiro</groupId>
+			    <artifactId>shiro-cas</artifactId>
+			    <version>${shiro.version}</version>
+			</dependency>
+			
+			<!-- Freemarker -->
+			<dependency>
+			    <groupId>org.freemarker</groupId>
+			    <artifactId>freemarker</artifactId>
+			    <version>2.3.23</version>
+			</dependency>
+			
+			<!-- CAS -->
+			<dependency>
+				<groupId>org.jasig.cas.client</groupId>
+				<artifactId>cas-client-core</artifactId>
+				<version>3.2.2</version>
 			</dependency>
 
 			<dependency>

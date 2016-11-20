@@ -6,22 +6,30 @@ import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.ExcessiveAttemptsException;
 import org.apache.shiro.authc.credential.PasswordMatcher;
-import org.apache.shiro.cache.Cache;
+import org.springframework.util.SerializationUtils;
 
-import com.housair.bssm.shiro.cache.RedisCacheManager;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.housair.bssm.toolkit.redis.IRedisClient;
+import com.housair.bssm.toolkit.util.ThreadLocalUtils;
 
 public class CustomPasswordMatcher extends PasswordMatcher {
 	
-	private Cache<String, AtomicInteger> passwordRetryCache;
+	private IRedisClient redisClient;
 	
 	private int retryCount = 5;
+	
+	private int expireTime = 7200000;
 
-	public CustomPasswordMatcher(RedisCacheManager redisCacheManager) {
-		passwordRetryCache = redisCacheManager.getCache("passwordRetryCache");
+	public CustomPasswordMatcher(IRedisClient redisClient) {
+		this.redisClient = redisClient;
 	}
 	
 	public void setRetryCount(int retryCount) {
 		this.retryCount = retryCount;
+	}
+
+	public void setExpireTime(int expireTime) {
+		this.expireTime = expireTime;
 	}
 
 	@Override
@@ -29,19 +37,22 @@ public class CustomPasswordMatcher extends PasswordMatcher {
 
 		String username = (String) token.getPrincipal();
 		// retry count + 1
-		AtomicInteger _retryCount = passwordRetryCache.get(username);
+		AtomicInteger _retryCount = redisClient.get("passwordRetryCache." + username, "shiro.cahce", new TypeReference<AtomicInteger>() {
+		});
 		if (null == _retryCount) {
-			passwordRetryCache.put(username, _retryCount);
+			_retryCount = new AtomicInteger(0);
 		}
 		if (_retryCount.incrementAndGet() > retryCount) {
 			// if retry count > 5 throw
 			throw new ExcessiveAttemptsException();
 		}
 
+		redisClient.set("passwordRetryCache." + username, "shiro.cahce", SerializationUtils.serialize(_retryCount), expireTime);
+		ThreadLocalUtils.set("username", username);
 		boolean matches = getPasswordService().passwordsMatch(getSubmittedPassword(token), (String) getStoredPassword(info));
 		if (matches) {
 			// clear retry count
-			passwordRetryCache.remove(username);
+			redisClient.del("passwordRetryCache." + username, "shiro.cahce");
 		}
 		return matches;
 	}

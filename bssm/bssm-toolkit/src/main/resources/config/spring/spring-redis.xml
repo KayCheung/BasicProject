@@ -9,7 +9,7 @@
 	
 	<aop:aspectj-autoproxy />
 	<context:annotation-config />
-	<context:component-scan base-package="com.housair.bssm.toolkit.redis" />
+	<context:component-scan base-package="com.housair.bssm.toolkit" />
 
 	<!-- 连接池的配置 -->
 	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">

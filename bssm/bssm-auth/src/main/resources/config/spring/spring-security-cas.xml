@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:sec="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd    
+                        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd">
+         
+	<!-- 不要过滤图片等静态资源 -->
+	<sec:http security="none" pattern="/**/*.jpg" />
+	<sec:http security="none" pattern="/**/*.png" />
+	<sec:http security="none" pattern="/**/*.gif" />
+	<sec:http security="none" pattern="/**/*.css" />
+	<sec:http security="none" pattern="/**/*.js" />
+	<sec:http use-expressions="true" entry-point-ref="casEntryPoint">
+		<sec:logout invalidate-session="true" logout-success-url="/index.htm" logout-url="/logout"/>
+		<sec:session-management invalid-session-url="/login" session-authentication-strategy-ref="sessionAuthenticationStrategy" />
+		<sec:intercept-url pattern="/resources/**" access="permitAll" />
+		<sec:intercept-url pattern="/error/**" access="permitAll" />
+		<sec:intercept-url pattern="/**" access="isAuthenticated()" /> <!-- 登录用户有权限访问 -->
+		<sec:remember-me />
+		<sec:anonymous />
+		<!-- CAS认证拦截器 -->
+		<sec:custom-filter ref="casFilter" position="FORM_LOGIN_FILTER" />
+		<!-- <custom-filter ref="casExtFilter" before="FILTER_SECURITY_INTERCEPTOR" /> -->
+		<sec:custom-filter ref="concurrencyFilter" position="CONCURRENT_SESSION_FILTER" />
+	</sec:http>
+	
+	<bean id="accessDecisionManager" class="com.housair.bssm.security.access.CustomAccessDecisionManager" />
+	
+	<bean id="securityMetadataSource" class="com.housair.bssm.security.access.CustomSecurityMetadataSource"/>
+	
+	<!-- 安全URL拦截器 : FilterSecurityIntercepto， 必须包含 authenticationManager,accessDecisionManager,securityMetadataSource三个属性， 
+		我们的所有控制将在这三个类中实现，解释详见具体配置 -->
+	<bean id="filterSecurityInterceptor" class="org.springframework.security.web.access.intercept.FilterSecurityInterceptor">
+		<property name="authenticationManager" ref="authenticationManager" />        <!-- 认证管理 即 登录验证 -->
+		<property name="accessDecisionManager" ref="accessDecisionManager" />        <!-- 访问决策管理 即 验证用户是否有权限访问数据库配置的URL -->
+		<property name="securityMetadataSource" ref="securityMetadataSource" />    <!-- 权限资源加载管理 即 加载数据库配置的URL和Token -->
+		<property name="observeOncePerRequest" value="false" />                     <!-- 此 过滤器是放在FILTER_SECURITY_INTERCEPTOR 之后的，为了让此过滤器运行，就要将此参数设为false，如果设为true此过滤器将跳过不运行 -->
+	</bean>
+
+	<!-- CAS 过滤器 转发CAS到服务器，验证票据 -->
+	<bean id="casFilter" class="org.springframework.security.cas.web.CasAuthenticationFilter">
+		<property name="authenticationManager" ref="authenticationManager" />
+		<property name="sessionAuthenticationStrategy" ref="sessionAuthenticationStrategy" />
+		<property name="authenticationSuccessHandler">
+			<bean class="org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler" />
+		</property>
+	</bean>
+
+	<!-- 配置属性 配置登录拦截URL -->
+	<bean id="serviceProperties" class="org.springframework.security.cas.ServiceProperties">
+		<!-- 由casAuthenticationFilter 监控的URL -->
+		<property name="service" value="${cas.client.bssm.login}" />
+		<property name="sendRenew" value="false" />
+	</bean>
+	
+	<!-- CAS认证切入点，声明cas服务器端登录的地址 -->
+	<bean id="casEntryPoint" class="org.springframework.security.cas.web.CasAuthenticationEntryPoint">
+		<property name="loginUrl" value="${cas.login}" />
+		<property name="serviceProperties" ref="serviceProperties" />
+		<property name="encodeServiceUrlWithSessionId" value="false" />
+	</bean>
+
+	<!-- CAS ticket 处理 -->
+	<bean id="casAuthenticationProvider" class="org.springframework.security.cas.authentication.CasAuthenticationProvider">
+		<property name="authenticationUserDetailsService">
+			<bean class="org.springframework.security.core.userdetails.UserDetailsByNameServiceWrapper">
+				<!-- 一旦CAS验证通过 使用它来加载用户授权信息 -->
+				<constructor-arg ref="userDetailsService" />
+			</bean>
+		</property>
+		<property name="serviceProperties" ref="serviceProperties" />
+		<property name="ticketValidator">
+			<bean class="org.jasig.cas.client.validation.Cas20ServiceTicketValidator">
+				<constructor-arg index="0" value="${cas.host}" />
+			</bean>
+		</property>
+		<property name="key" value="cas" /><!-- 表明是用CAS验证 -->
+	</bean>
+	
+	<!-- 验证配置: 认证管理器，实现用户认证的入口，主要实现UserDetailsService接口即可 查询用户 -->
+	<sec:authentication-manager alias="authenticationManager">
+		<sec:authentication-provider ref="casAuthenticationProvider"/>
+	</sec:authentication-manager>
+	
+	<bean id="sessionAuthenticationStrategy" class="org.springframework.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy">
+		<constructor-arg name="sessionRegistry" ref="sessionRegistry" />
+		<property name="maximumSessions" value="10"></property>
+	</bean>
+
+	<bean id="userDetailsService" class="com.housair.bssm.security.service.CustomUserDetailsService" />
+
+	<bean id="sessionRegistry" class="org.springframework.security.core.session.SessionRegistryImpl" />
+	
+	<bean id="concurrencyFilter" class="org.springframework.security.web.session.ConcurrentSessionFilter">
+		<constructor-arg name="sessionRegistry" ref="sessionRegistry"/>
+		<constructor-arg name="expiredUrl" value="${cas.logout}?service=${cas.client.bssm}" />
+	</bean>
+	
+</beans>

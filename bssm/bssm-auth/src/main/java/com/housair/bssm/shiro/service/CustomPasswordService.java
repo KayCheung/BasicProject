@@ -11,6 +11,9 @@ public class CustomPasswordService implements PasswordService {
 	@Override
 	public String encryptPassword(Object plaintextPassword) throws IllegalArgumentException {
 		String salt = (String) ThreadLocalUtils.get("username");
+		if(plaintextPassword instanceof char[]) {
+			plaintextPassword = new String((char[])plaintextPassword);
+		}
 		return Md5Crypt.apr1Crypt(plaintextPassword.toString().getBytes(), salt);
 	}
 
@@ -24,8 +27,7 @@ public class CustomPasswordService implements PasswordService {
             }
         }
 		
-		String salt = (String) ThreadLocalUtils.get("username");
-		String computed = Md5Crypt.apr1Crypt(submittedPlaintext.toString().getBytes(), salt);
+		String computed = encryptPassword(submittedPlaintext);
 		
 		return encrypted.equals(computed);
 	}
